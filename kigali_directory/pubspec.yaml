@@ -1,0 +1,113 @@
+name: kigali_directory
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.10.0 <4.0.0'  # More flexible SDK range for better compatibility
+  flutter: ">=3.16.0"     # Minimum Flutter version for stable performance
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Firebase - Core functionality
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.0
+  cloud_firestore: ^5.4.0
+
+  # Maps & Location - Optimized for performance
+  flutter_map: ^7.0.2
+  flutter_map_marker_cluster: ^1.3.6  # NEW: Clustering for better map performance
+  latlong2: ^0.9.0
+  geolocator: ^13.0.0
+  url_launcher: ^6.3.0
+
+  # State Management
+  provider: ^6.1.0
+
+  # Local Storage & Caching - PERFORMANCE BOOST
+  shared_preferences: ^2.3.0
+  cached_network_image: ^3.4.1         # NEW: Cache images for faster loading
+  
+  # Network & API - Better error handling
+  http: ^1.2.0                         # NEW: For API calls
+  
+  # Image & Media
+  image_picker: ^1.1.2                 # NEW: For user profile pictures/listings
+  
+  # Performance & UI helpers
+  shimmer: ^3.0.0                      # NEW: Loading animations instead of plain spinners
+  
+  # Utility packages for better UX
+  intl: ^0.19.0                        # NEW: Date formatting, localization
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting and code quality
+  flutter_lints: ^6.0.0
+  
+  # Performance analysis tools
+  flutter_launcher_icons: ^0.14.1      # NEW: Generate app icons
+  
+# Flutter configuration section
+flutter:
+  uses-material-design: true
+
+  # Assets folder - FOR IMAGES, ICONS, ETC.
+  assets:
+    - assets/images/           # Folder for app images
+    - assets/icons/            # Folder for custom icons
+    
+  # Custom fonts (if needed later)
+  # fonts:
+  #   - family: CustomFont
+  #     fonts:
+  #       - asset: assets/fonts/CustomFont-Regular.ttf
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
