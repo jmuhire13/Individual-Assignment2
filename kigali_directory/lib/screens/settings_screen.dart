@@ -448,14 +448,14 @@ class _SettingsScreenState extends State<SettingsScreen>
                               'Total Listings',
                               '${provider.allListings.where((l) => l.createdBy == user?.uid).length}',
                               Icons.list_alt,
-                              Colors.blue,
+                              Colors.black87,
                             ),
                             const SizedBox(width: 12),
                             _buildStatCard(
                               'Views This Month',
                               '0', // Would need to implement view tracking
                               Icons.visibility,
-                              Colors.green,
+                              Colors.black87,
                             ),
                           ],
                         ),
