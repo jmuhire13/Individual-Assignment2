@@ -2,10 +2,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/listing_model.dart';
+import 'add_edit_listing_screen.dart';
 
 class DetailScreen extends StatefulWidget {
   final ListingModel listing;
@@ -72,33 +75,16 @@ class _DetailScreenState extends State<DetailScreen>
   }
 
   Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Hospital':
-        return Colors.red;
-      case 'Police Station':
-        return Colors.blue;
-      case 'Library':
-        return Colors.brown;
-      case 'Restaurant':
-        return Colors.orange;
-      case 'Café':
-        return Colors.amber;
-      case 'Park':
-        return Colors.green;
-      case 'Tourist Attraction':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
+    // Use accent color for all categories in glassmorphic theme
+    return const Color(0xFFE53E3E);
   }
 
   Future<void> _openDirections() async {
     try {
       // Debug: Print the actual coordinates being used
-      print('🗺️ Opening directions for: ${widget.listing.name}');
-      // ignore: avoid_print
+      print('Opening directions for: ${widget.listing.name}');
       print(
-        '🗺️ Coordinates: ${widget.listing.latitude}, ${widget.listing.longitude}',
+        'Coordinates: ${widget.listing.latitude}, ${widget.listing.longitude}',
       );
 
       // Check if coordinates are in Kigali range
@@ -109,11 +95,11 @@ class _DetailScreenState extends State<DetailScreen>
 
       if (!isKigaliLatitude || !isKigaliLongitude) {
         _showSnackBar(
-          '⚠️ Warning: This location appears to be outside Kigali area',
+          'Warning: This location appears to be outside Kigali area',
           Colors.orange,
         );
         print(
-          '⚠️ Coordinates seem wrong for Kigali: ${widget.listing.latitude}, ${widget.listing.longitude}',
+          'Coordinates seem wrong for Kigali: ${widget.listing.latitude}, ${widget.listing.longitude}',
         );
       }
 
@@ -122,7 +108,7 @@ class _DetailScreenState extends State<DetailScreen>
         '&destination=${widget.listing.latitude},${widget.listing.longitude}',
       );
 
-      print('🗺️ Google Maps URL: $url');
+      print('Google Maps URL: $url');
 
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
@@ -197,239 +183,229 @@ class _DetailScreenState extends State<DetailScreen>
     final categoryColor = _getCategoryColor(widget.listing.category);
     final categoryIcon = _getCategoryIcon(widget.listing.category);
 
-    return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: CustomScrollView(
-          slivers: [
-            // ── Custom App Bar with Map ─────────────────────
-            SliverAppBar(
-              expandedHeight: 300,
-              pinned: true,
-              backgroundColor: Colors.white,
-              leading: Container(
-                margin: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, size: 20),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ),
-              actions: [
-                Container(
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F0F23), Color(0xFF1A1A2E), Color(0xFF16213E)],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: true,
+        body: FadeTransition(
+          opacity: _fadeAnimation,
+          child: CustomScrollView(
+            // ← fixed: Slivers require CustomScrollView
+            slivers: [
+              // ── Custom App Bar with Map ─────────────────────
+              SliverAppBar(
+                expandedHeight: 300,
+                pinned: true,
+                backgroundColor: const Color(0xFF0F0F23),
+                leading: Container(
                   margin: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.black.withOpacity(0.5),
                     shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white.withOpacity(0.2)),
                   ),
                   child: IconButton(
-                    icon: const Icon(Icons.share),
-                    onPressed: _shareListing,
+                    icon: const Icon(
+                      Icons.arrow_back_ios,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                    onPressed: () => Navigator.pop(context),
                   ),
                 ),
-              ],
-              flexibleSpace: FlexibleSpaceBar(
-                background: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    FlutterMap(
-                      options: MapOptions(
-                        initialCenter: position,
-                        initialZoom: 15,
-                      ),
-                      children: [
-                        TileLayer(
-                          urlTemplate:
-                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.kigali_directory',
+                actions: [
+                  if (FirebaseAuth.instance.currentUser?.uid ==
+                      widget.listing.createdBy)
+                    Container(
+                      margin: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.2),
                         ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: position,
-                              width: 50,
-                              height: 50,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: categoryColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 3,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 2),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.edit, color: Colors.white),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  AddEditListingScreen(listing: widget.listing),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.share, color: Colors.white),
+                      onPressed: _shareListing,
+                    ),
+                  ),
+                ],
+                flexibleSpace: FlexibleSpaceBar(
+                  background: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      FlutterMap(
+                        options: MapOptions(
+                          initialCenter: position,
+                          initialZoom: 15,
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName:
+                                'com.example.kigali_directory',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: position,
+                                width: 50,
+                                height: 50,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: categoryColor,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 3,
                                     ),
-                                  ],
-                                ),
-                                child: Icon(
-                                  categoryIcon,
-                                  color: Colors.white,
-                                  size: 24,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.3),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    categoryIcon,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    // Gradient overlay for better text readability
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: Container(
-                        height: 100,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.bottomCenter,
-                            end: Alignment.topCenter,
-                            colors: [
-                              Colors.black.withOpacity(0.7),
-                              Colors.transparent,
                             ],
                           ),
+                        ],
+                      ),
+                      // Gradient overlay for better text readability
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 100,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withOpacity(0.7),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            // ── Content ─────────────────────────────────────
-            SliverToBoxAdapter(
-              child: SlideTransition(
-                position: _slideAnimation,
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.vertical(
+              // ── Content ─────────────────────────────────────
+              SliverToBoxAdapter(
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
                       top: Radius.circular(24),
                     ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ── Header Section ──────────────────────
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: categoryColor.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: categoryColor.withOpacity(0.3),
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    categoryIcon,
-                                    size: 16,
-                                    color: categoryColor,
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    widget.listing.category,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: categoryColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.08),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(24),
+                          ),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.15),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, -5),
                             ),
                           ],
                         ),
-
-                        const SizedBox(height: 16),
-
-                        Text(
-                          widget.listing.name,
-                          style: const TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // ── Contact Information ──────────────────
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey[200]!),
-                          ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // ── Header Section ──────────────────────
                               Row(
                                 children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(
-                                      Icons.location_on,
-                                      size: 20,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          'Address',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w500,
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(25),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 5,
+                                        sigmaY: 5,
+                                      ),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: categoryColor.withOpacity(0.8),
+                                          borderRadius: BorderRadius.circular(
+                                            25,
+                                          ),
+                                          border: Border.all(
+                                            color: categoryColor,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          widget.listing.address,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              categoryIcon,
+                                              size: 16,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              widget.listing.category,
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.copy, size: 20),
-                                    onPressed: () => _copyToClipboard(
-                                      widget.listing.address,
-                                      'Address',
-                                    ),
-                                    style: IconButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
                                   ),
@@ -438,170 +414,356 @@ class _DetailScreenState extends State<DetailScreen>
 
                               const SizedBox(height: 16),
 
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: Colors.green.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(
-                                      Icons.phone,
-                                      size: 20,
-                                      color: Colors.green,
-                                    ),
+                              Text(
+                                widget.listing.name,
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // ── Contact Information ──────────────────
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 5,
+                                    sigmaY: 5,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.15),
+                                      ),
+                                    ),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
                                       children: [
-                                        const Text(
-                                          'Contact Number',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(
+                                                  0.1,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Icon(
+                                                Icons.location_on,
+                                                size: 20,
+                                                color: Colors.white.withOpacity(
+                                                  0.7,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Address',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.white
+                                                          .withOpacity(0.5),
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    widget.listing.address,
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white
+                                                          .withOpacity(0.9),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.copy,
+                                                size: 20,
+                                                color: Colors.white.withOpacity(
+                                                  0.6,
+                                                ),
+                                              ),
+                                              onPressed: () => _copyToClipboard(
+                                                widget.listing.address,
+                                                'Address',
+                                              ),
+                                              style: IconButton.styleFrom(
+                                                backgroundColor: Colors.white
+                                                    .withOpacity(0.1),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          widget.listing.contactNumber,
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+
+                                        Divider(
+                                          height: 32,
+                                          color: Colors.white.withOpacity(0.1),
+                                        ),
+
+                                        Row(
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white.withOpacity(
+                                                  0.1,
+                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Icon(
+                                                Icons.phone,
+                                                size: 20,
+                                                color: Colors.white.withOpacity(
+                                                  0.7,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'Contact Number',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: Colors.white
+                                                          .withOpacity(0.5),
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    widget
+                                                        .listing
+                                                        .contactNumber,
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: Colors.white
+                                                          .withOpacity(0.9),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                IconButton(
+                                                  icon: Icon(
+                                                    Icons.copy,
+                                                    size: 20,
+                                                    color: Colors.white
+                                                        .withOpacity(0.6),
+                                                  ),
+                                                  onPressed: () =>
+                                                      _copyToClipboard(
+                                                        widget
+                                                            .listing
+                                                            .contactNumber,
+                                                        'Phone number',
+                                                      ),
+                                                  style: IconButton.styleFrom(
+                                                    backgroundColor: Colors
+                                                        .white
+                                                        .withOpacity(0.1),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                IconButton(
+                                                  icon: const Icon(
+                                                    Icons.call,
+                                                    size: 20,
+                                                  ),
+                                                  onPressed: _makePhoneCall,
+                                                  style: IconButton.styleFrom(
+                                                    backgroundColor:
+                                                        const Color(0xFFE53E3E),
+                                                    foregroundColor:
+                                                        Colors.white,
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
                                   ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        icon: const Icon(Icons.copy, size: 20),
-                                        onPressed: () => _copyToClipboard(
-                                          widget.listing.contactNumber,
-                                          'Phone number',
+                                ),
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // ── Description ──────────────────────────
+                              const Text(
+                                'About',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
+
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: BackdropFilter(
+                                  filter: ImageFilter.blur(
+                                    sigmaX: 5,
+                                    sigmaY: 5,
+                                  ),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(20),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.08),
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: Colors.white.withOpacity(0.15),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      widget.listing.description,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        height: 1.6,
+                                        color: Colors.white.withOpacity(0.85),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 32),
+
+                              // ── Action Buttons ──────────────────────
+                              Row(
+                                children: [
+                                  Expanded(
+                                    flex: 2,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _openDirections,
+                                      icon: const Icon(Icons.directions),
+                                      label: const Text(
+                                        'Get Directions',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
                                         ),
-                                        style: IconButton.styleFrom(
-                                          backgroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(
+                                          0xFFE53E3E,
+                                        ),
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 16,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
+                                        ),
+                                        elevation: 4,
+                                        shadowColor: const Color(
+                                          0xFFE53E3E,
+                                        ).withOpacity(0.4),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(16),
+                                      child: BackdropFilter(
+                                        filter: ImageFilter.blur(
+                                          sigmaX: 5,
+                                          sigmaY: 5,
+                                        ),
+                                        child: OutlinedButton.icon(
+                                          onPressed: _shareListing,
+                                          icon: const Icon(Icons.share),
+                                          label: const Text(
+                                            'Share',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          style: OutlinedButton.styleFrom(
+                                            foregroundColor: Colors.white,
+                                            backgroundColor: Colors.white
+                                                .withOpacity(0.1),
+                                            padding: const EdgeInsets.symmetric(
+                                              vertical: 16,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                            ),
+                                            side: BorderSide(
+                                              color: Colors.white.withOpacity(
+                                                0.3,
+                                              ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: const Icon(Icons.call, size: 20),
-                                        onPressed: _makePhoneCall,
-                                        style: IconButton.styleFrom(
-                                          backgroundColor: Colors.green,
-                                          foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
                                 ],
                               ),
+
+                              const SizedBox(height: 24),
                             ],
                           ),
                         ),
-
-                        const SizedBox(height: 24),
-
-                        // ── Description ──────────────────────────
-                        const Text(
-                          'About',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.grey[200]!),
-                          ),
-                          child: Text(
-                            widget.listing.description,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              height: 1.6,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 32),
-
-                        // ── Action Buttons ──────────────────────
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: ElevatedButton.icon(
-                                onPressed: _openDirections,
-                                icon: const Icon(Icons.directions),
-                                label: const Text('Get Directions'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.blue,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  elevation: 2,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _shareListing,
-                                icon: const Icon(Icons.share),
-                                label: const Text('Share'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.blue,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  side: const BorderSide(color: Colors.blue),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 24),
-                      ],
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

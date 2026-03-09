@@ -1,9 +1,14 @@
+// ignore_for_file: unused_element, deprecated_member_use, unused_import
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
+import 'dart:ui';
 import '../providers/listing_provider.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/custom_search_bar.dart';
+import '../widgets/glassmorphic_category_chips.dart';
 import 'add_edit_listing_screen.dart';
 import 'detail_screen.dart';
 import 'package:shimmer/shimmer.dart';
@@ -25,9 +30,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
-      setState(() {});
-    });
+    // Removed controller listener as CustomSearchBar now handles its own state
   }
 
   @override
@@ -46,7 +49,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
     });
   }
 
-  void _clearSearch() {
+  Future<void> _clearSearch() async {
     _searchController.clear();
     setState(() {
       _searchQuery = '';
@@ -132,52 +135,79 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser!.uid;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
-      body: RefreshIndicator(
-        onRefresh: _onRefresh,
-        color: Colors.black,
-        child: Consumer<ListingProvider>(
-          builder: (ctx, prov, _) {
-            // Filter to show only current user's listings
-            var myListings = prov.myListings
-                .where((l) => l.createdBy == uid)
-                .toList();
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F0F23),
+            Color(0xFF1A1A2E),
+            Color(0xFF16213E),
+          ],
+        ),
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        resizeToAvoidBottomInset: true,
+        appBar: _buildAppBar(),
+        body: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: Colors.white,
+            child: Consumer<ListingProvider>(
+              builder: (ctx, prov, _) {
+                // Filter to show only current user's listings
+                var myListings = prov.myListings
+                    .where((l) => l.createdBy == uid)
+                    .toList();
 
-            // Apply search filter if active
-            if (_searchQuery.isNotEmpty) {
-              myListings = myListings
-                  .where(
-                    (l) =>
-                        l.name.toLowerCase().contains(_searchQuery) ||
-                        l.category.toLowerCase().contains(_searchQuery) ||
-                        l.address.toLowerCase().contains(_searchQuery),
-                  )
-                  .toList();
-            }
+                // Apply search filter if active
+                if (_searchQuery.isNotEmpty) {
+                  myListings = myListings
+                      .where(
+                        (l) =>
+                            l.name.toLowerCase().contains(_searchQuery) ||
+                            l.category.toLowerCase().contains(_searchQuery) ||
+                            l.address.toLowerCase().contains(_searchQuery),
+                      )
+                      .toList();
+                }
 
-            if (prov.isLoading && myListings.isEmpty) {
-              return _buildShimmerList();
-            }
+                if (prov.isLoading && myListings.isEmpty) {
+                  return _buildShimmerList();
+                }
 
-            return Column(
-              children: [
-                // ── STATISTICS SECTION ────────────────────
-                _buildStatisticsSection(prov, myListings),
+                return SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── STATISTICS SECTION ────────────────────
+                      _buildStatisticsSection(prov, myListings),
 
-                // ── SEARCH BAR ─────────────────────────────
-                if (myListings.isNotEmpty) _buildSearchSection(),
+                      // ── SEARCH BAR ─────────────────────────────
+                      if (myListings.isNotEmpty)
+                        CustomSearchBar(
+                          controller: _searchController,
+                          hintText: 'Search your listings...',
+                          onChanged: _onSearchChanged,
+                          onClear: () async {
+                            await _clearSearch();
+                          },
+                          showFilterIcon: false,
+                        ),
 
-                // ── LISTINGS CONTENT ───────────────────────
-                Expanded(
-                  child: myListings.isEmpty
-                      ? _buildEmptyState()
-                      : _buildListingsView(myListings),
-                ),
-              ],
-            );
-          },
+                      // ── LISTINGS CONTENT ───────────────────────
+                      myListings.isEmpty
+                          ? _buildEmptyState()
+                          : _buildListingsView(myListings),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         ),
       ),
     );
@@ -186,19 +216,19 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   // ── BUILD APP BAR ─────────────────────────────────────────────────────────────────
   PreferredSizeWidget _buildAppBar() {
     return AppBar(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
       elevation: 0,
       title: Text(
         _isSelectMode ? '${_selectedListings.length} selected' : 'My Listings',
         style: const TextStyle(
-          color: Colors.black,
+          color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.w600,
         ),
       ),
       leading: _isSelectMode
           ? IconButton(
-              icon: const Icon(Icons.close, color: Colors.black),
+              icon: const Icon(Icons.close, color: Colors.white),
               onPressed: _toggleSelectMode,
             )
           : null,
@@ -210,7 +240,7 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
               onPressed: _deleteSelected,
             ),
           PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Colors.black),
+            icon: const Icon(Icons.more_vert, color: Colors.white),
             onSelected: (value) {
               if (value == 'select_all') {
                 final provider = context.read<ListingProvider>();
@@ -230,12 +260,12 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           ),
         ] else ...[
           IconButton(
-            icon: const Icon(Icons.checklist, color: Colors.black),
+            icon: const Icon(Icons.checklist, color: Colors.white),
             onPressed: _toggleSelectMode,
             tooltip: 'Select multiple',
           ),
           IconButton(
-            icon: const Icon(Icons.add, color: Colors.black),
+            icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () {
               Navigator.push(
                 context,
@@ -256,45 +286,66 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   ) {
     return Container(
       margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.grey.shade50, Colors.white],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _buildStatItem(
+                    'Total',
+                    myListings.length.toString(),
+                    Icons.list_alt,
+                    const Color(0xFFE53E3E),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    'Categories',
+                    _getCategoryCount(myListings).toString(),
+                    Icons.category,
+                    const Color(0xFFE53E3E),
+                  ),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.white.withOpacity(0.3),
+                ),
+                Expanded(
+                  child: _buildStatItem(
+                    'Recent',
+                    _getRecentCount(myListings).toString(),
+                    Icons.schedule,
+                    const Color(0xFFE53E3E),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildStatItem(
-              'Total',
-              myListings.length.toString(),
-              Icons.list_alt,
-              Colors.blue,
-            ),
-          ),
-          Container(width: 1, height: 40, color: Colors.grey.shade300),
-          Expanded(
-            child: _buildStatItem(
-              'Categories',
-              _getCategoryCount(myListings).toString(),
-              Icons.category,
-              Colors.green,
-            ),
-          ),
-          Container(width: 1, height: 40, color: Colors.grey.shade300),
-          Expanded(
-            child: _buildStatItem(
-              'Recent',
-              _getRecentCount(myListings).toString(),
-              Icons.schedule,
-              Colors.orange,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -314,12 +365,15 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black,
+            color: Colors.white,
           ),
         ),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.white.withOpacity(0.7),
+          ),
         ),
       ],
     );
@@ -390,81 +444,90 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   Widget _buildEmptyState() {
     final isSearchResult = _searchQuery.isNotEmpty;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(60),
+    return SizedBox(
+      height: 400,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 120,
+                height: 120,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(60),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                  ),
+                ),
+                child: Icon(
+                  isSearchResult ? Icons.search_off : Icons.add_business,
+                  size: 60,
+                  color: Colors.white.withOpacity(0.6),
+                ),
               ),
-              child: Icon(
-                isSearchResult ? Icons.search_off : Icons.add_business,
-                size: 60,
-                color: Colors.grey.shade400,
+              const SizedBox(height: 24),
+              Text(
+                isSearchResult ? 'No matching listings' : 'No listings yet',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              isSearchResult ? 'No matching listings' : 'No listings yet',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
+              const SizedBox(height: 8),
+              Text(
+                isSearchResult
+                    ? 'Try different search terms'
+                    : 'Share your favorite places in Kigali with others',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.white.withOpacity(0.7),
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isSearchResult
-                  ? 'Try different search terms'
-                  : 'Share your favorite places in Kigali with others',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
-            ),
-            if (!isSearchResult) ...[
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const AddEditListingScreen(),
+              if (!isSearchResult) ...[
+                const SizedBox(height: 32),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AddEditListingScreen(),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE53E3E),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
                     ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(25),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Create Your First Listing'),
+                ),
+              ] else ...[
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: _clearSearch,
+                  child: const Text(
+                    'Clear search',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Create Your First Listing'),
-              ),
-            ] else ...[
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: _clearSearch,
-                child: const Text(
-                  'Clear search',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -474,6 +537,8 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   Widget _buildListingsView(List<dynamic> myListings) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
       itemCount: myListings.length,
       itemBuilder: (ctx, i) {
         final listing = myListings[i];
@@ -565,7 +630,10 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
           children: [
             Icon(Icons.delete, color: Colors.white, size: 24),
             SizedBox(height: 4),
-            Text('Delete', style: TextStyle(color: Colors.white, fontSize: 12)),
+            Text(
+              'Delete',
+              style: TextStyle(color: Colors.white, fontSize: 12),
+            ),
           ],
         ),
       ),
@@ -621,8 +689,8 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
 
   Widget _buildShimmerList() {
     return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
+      baseColor: Colors.white.withOpacity(0.1),
+      highlightColor: Colors.white.withOpacity(0.3),
       child: Column(
         children: [
           // Shimmer for statistics
@@ -630,8 +698,11 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             margin: const EdgeInsets.all(16),
             height: 80,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+              ),
             ),
           ),
           // Shimmer for search
@@ -639,8 +710,11 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 16),
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.2),
+              ),
             ),
           ),
           // Shimmer for listings
@@ -652,8 +726,11 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 height: 100,
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.2),
+                  ),
                 ),
               ),
             ),

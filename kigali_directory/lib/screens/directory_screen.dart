@@ -1,4 +1,4 @@
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, unused_import
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +6,8 @@ import 'dart:async';
 import 'dart:ui';
 import '../providers/listing_provider.dart';
 import '../widgets/listing_card.dart';
+import '../widgets/custom_search_bar.dart';
+import '../widgets/glassmorphic_category_chips.dart';
 import 'detail_screen.dart';
 import 'package:shimmer/shimmer.dart';
 
@@ -73,11 +75,7 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF0F0F23),
-            Color(0xFF1A1A2E),
-            Color(0xFF16213E),
-          ],
+          colors: [Color(0xFF0F0F23), Color(0xFF1A1A2E), Color(0xFF16213E)],
         ),
       ),
       child: Scaffold(
@@ -169,8 +167,11 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                         controller: _searchController,
                         style: const TextStyle(color: Colors.white),
                         decoration: InputDecoration(
-                          hintText: 'Search for services, restaurants, attractions...',
-                          hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
+                          hintText:
+                              'Search for services, restaurants, attractions...',
+                          hintStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.6),
+                          ),
                           prefixIcon: Icon(
                             Icons.search,
                             color: Colors.white.withOpacity(0.8),
@@ -263,7 +264,8 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                               child: Material(
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  onTap: () => prov.setCategory(isAll ? null : cat),
+                                  onTap: () =>
+                                      prov.setCategory(isAll ? null : cat),
                                   borderRadius: BorderRadius.circular(25),
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(
@@ -310,13 +312,14 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                             const SizedBox(height: 16),
                             Text(
                               'Error Loading Listings',
-                              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                color: Colors.white,
-                              ),
+                              style: Theme.of(context).textTheme.headlineSmall
+                                  ?.copyWith(color: Colors.white),
                             ),
                             const SizedBox(height: 8),
                             Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 32),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 32,
+                              ),
                               child: Text(
                                 prov.errorMessage!,
                                 textAlign: TextAlign.center,
@@ -355,7 +358,8 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                         vertical: 8,
                       ),
                       itemCount:
-                          prov.filteredListings.length + (prov.isLoading ? 1 : 0),
+                          prov.filteredListings.length +
+                          (prov.isLoading ? 1 : 0),
                       itemBuilder: (ctx, i) {
                         // Show loading indicator at bottom if loading more
                         if (i >= prov.filteredListings.length) {
@@ -365,7 +369,9 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
                               child: SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
                               ),
                             ),
                           );
@@ -408,9 +414,7 @@ class _DirectoryScreenState extends State<DirectoryScreen> {
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.2),
-            ),
+            border: Border.all(color: Colors.white.withOpacity(0.2)),
           ),
           child: Container(
             height: 100,

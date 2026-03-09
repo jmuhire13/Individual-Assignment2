@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
 
-class CustomSearchBar extends StatelessWidget {
+class CustomSearchBar extends StatefulWidget {
   final TextEditingController controller;
   final String hintText;
   final Function(String) onChanged;
@@ -20,6 +20,19 @@ class CustomSearchBar extends StatelessWidget {
   });
 
   @override
+  State<CustomSearchBar> createState() => _CustomSearchBarState();
+}
+
+class _CustomSearchBarState extends State<CustomSearchBar> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(() {
+      setState(() {}); // Update UI when text changes
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -31,9 +44,7 @@ class CustomSearchBar extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
               borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.2),
-              ),
+              border: Border.all(color: Colors.white.withOpacity(0.2)),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.3),
@@ -43,10 +54,10 @@ class CustomSearchBar extends StatelessWidget {
               ],
             ),
             child: TextField(
-              controller: controller,
+              controller: widget.controller,
               style: const TextStyle(color: Colors.white),
               decoration: InputDecoration(
-                hintText: hintText,
+                hintText: widget.hintText,
                 hintStyle: TextStyle(color: Colors.white.withOpacity(0.6)),
                 prefixIcon: Icon(
                   Icons.search,
@@ -55,21 +66,22 @@ class CustomSearchBar extends StatelessWidget {
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (controller.text.isNotEmpty && onClear != null)
+                    if (widget.controller.text.isNotEmpty &&
+                        widget.onClear != null)
                       IconButton(
                         icon: Icon(
                           Icons.clear,
                           color: Colors.white.withOpacity(0.8),
                         ),
-                        onPressed: onClear,
+                        onPressed: widget.onClear,
                       ),
-                    if (showFilterIcon && onFilter != null)
+                    if (widget.showFilterIcon && widget.onFilter != null)
                       IconButton(
                         icon: Icon(
                           Icons.tune,
                           color: Colors.white.withOpacity(0.8),
                         ),
-                        onPressed: onFilter,
+                        onPressed: widget.onFilter,
                       ),
                   ],
                 ),
@@ -95,7 +107,7 @@ class CustomSearchBar extends StatelessWidget {
                   vertical: 16,
                 ),
               ),
-              onChanged: onChanged,
+              onChanged: widget.onChanged,
             ),
           ),
         ),

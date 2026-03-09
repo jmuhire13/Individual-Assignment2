@@ -145,8 +145,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
       // ── GLASSMORPHIC FLOATING BOTTOM NAVIGATION ─────────────────
       bottomNavigationBar: Container(
-        margin: const EdgeInsets.all(16),
-        height: 70,
+        margin: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+        height: 56,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(35),
           child: BackdropFilter(
@@ -155,9 +155,7 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(35),
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.2),
-                ),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.3),
@@ -166,113 +164,120 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
                   ),
                 ],
               ),
-              child: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: _navItems.asMap().entries.map((entry) {
-                      final index = entry.key;
-                      final item = entry.value;
-                      final isSelected = index == _currentIndex;
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: _navItems.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+                    final isSelected = index == _currentIndex;
 
-                      return Expanded(
-                        child: GestureDetector(
-                          onTap: () => _onNavTap(index),
-                          behavior: HitTestBehavior.opaque,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // ── ICON WITH SELECTION BACKGROUND ────────────
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? const Color(0xFFE53E3E)
-                                        : Colors.transparent,
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Stack(
-                                    clipBehavior: Clip.none,
-                                    children: [
-                                      Center(
-                                        child: AnimatedSwitcher(
-                                          duration: const Duration(milliseconds: 200),
-                                          child: Icon(
-                                            isSelected
-                                                ? item.activeIcon
-                                                : item.icon,
-                                            key: ValueKey(isSelected),
-                                            size: 22,
-                                            color: isSelected
-                                                ? Colors.white
-                                                : Colors.white.withOpacity(0.7),
-                                          ),
+                    return Expanded(
+                      child: GestureDetector(
+                        onTap: () => _onNavTap(index),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          padding: EdgeInsets.zero,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // ── ICON WITH SELECTION BACKGROUND ────────────
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? const Color(0xFFE53E3E)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    Center(
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(
+                                          milliseconds: 200,
+                                        ),
+                                        child: Icon(
+                                          isSelected
+                                              ? item.activeIcon
+                                              : item.icon,
+                                          key: ValueKey(isSelected),
+                                          size: 20,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : Colors.white.withOpacity(0.7),
                                         ),
                                       ),
-
-                                      // Badge for My Listings (show count)
-                                      if (index == 1)
-                                        Consumer<ListingProvider>(
-                                          builder: (ctx, prov, _) {
-                                            final count = prov.myListings.length;
-                                            if (count == 0) return const SizedBox();
-
-                                            return Positioned(
-                                              right: -8,
-                                              top: -4,
-                                              child: Container(
-                                                padding: const EdgeInsets.all(2),
-                                                decoration: BoxDecoration(
-                                                  color: Colors.red,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                ),
-                                                constraints: const BoxConstraints(
-                                                  minWidth: 16,
-                                                  minHeight: 16,
-                                                ),
-                                                child: Text(
-                                                  count > 99
-                                                      ? '99+'
-                                                      : count.toString(),
-                                                  style: const TextStyle(
-                                                    color: Colors.white,
-                                                    fontSize: 8,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                  textAlign: TextAlign.center,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                    ],
-                                  ),
-                                ),
-
-                                // ── LABEL (ONLY FOR SELECTED ITEM) ─────────────
-                                if (isSelected) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    item.label,
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
                                     ),
+
+                                    // Badge for My Listings (show count)
+                                    if (index == 1)
+                                      Consumer<ListingProvider>(
+                                        builder: (ctx, prov, _) {
+                                          final count = prov.myListings.length;
+                                          if (count == 0)
+                                            return const SizedBox();
+
+                                          return Positioned(
+                                            right: -8,
+                                            top: -4,
+                                            child: Container(
+                                              padding: const EdgeInsets.all(2),
+                                              decoration: BoxDecoration(
+                                                color: Colors.red,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              constraints: const BoxConstraints(
+                                                minWidth: 16,
+                                                minHeight: 16,
+                                              ),
+                                              child: Text(
+                                                count > 99
+                                                    ? '99+'
+                                                    : count.toString(),
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 8,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                  ],
+                                ),
+                              ),
+
+                              // ── LABEL (COMPACT VERSION) ─────────────
+                              if (isSelected) ...[
+                                const SizedBox(height: 1),
+                                Text(
+                                  item.label,
+                                  style: const TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.white,
                                   ),
-                                ],
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ],
-                            ),
+                            ],
                           ),
                         ),
-                      );
-                    }).toList(),
-                  ),
+                      ),
+                    );
+                  }).toList(),
                 ),
               ),
             ),

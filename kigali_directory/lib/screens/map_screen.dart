@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, unnecessary_to_list_in_spreads, unused_field
+// ignore_for_file: deprecated_member_use, unnecessary_to_list_in_spreads, unused_field, unused_import
 
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -10,6 +10,8 @@ import 'dart:async';
 import 'dart:ui' as ui;
 import '../providers/listing_provider.dart';
 import '../models/listing_model.dart';
+import '../widgets/custom_search_bar.dart';
+import '../widgets/glassmorphic_category_chips.dart';
 import 'detail_screen.dart';
 
 class MapScreen extends StatefulWidget {
