@@ -103,7 +103,6 @@ MIT
 
 ---
 
-### **Technical Stack Summary**
-🎯 **Flutter 3.16+** | 🔥 **Firebase Backend** | 🗺️ **Google Maps** | ⚡ **Provider State Management** | 📱 **Material Design 3**
+### Technical Stack Summary
 
-*Built with ❤️ for Kigali community*
+**Flutter 3.16+** | **Firebase Backend** | **OpenStreetMap + Google Maps Navigation** | **Provider State Management** | **Material Design 3**
