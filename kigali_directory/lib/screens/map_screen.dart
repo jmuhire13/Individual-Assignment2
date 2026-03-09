@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, unnecessary_to_list_in_spreads, unused_field
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
@@ -69,30 +71,73 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     setState(() => _isLoadingLocation = true);
 
     try {
+      print('🌍 Getting current location...');
+
+      // Check if location services are enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      print('🌍 Location services enabled: $serviceEnabled');
       if (!serviceEnabled) {
-        _showLocationError('Location services are disabled');
+        _showLocationError(
+          'Location services are disabled. Please enable GPS in your device settings.',
+        );
         return;
       }
 
+      // Check current permission status
       LocationPermission permission = await Geolocator.checkPermission();
+      print('🌍 Current permission: $permission');
+
       if (permission == LocationPermission.denied) {
+        print('🌍 Requesting location permission...');
         permission = await Geolocator.requestPermission();
+        print('🌍 Permission after request: $permission');
+
         if (permission == LocationPermission.denied) {
-          _showLocationError('Location permission denied');
+          _showLocationError(
+            'Location permission denied. Please grant location access in app settings.',
+          );
           return;
         }
       }
 
       if (permission == LocationPermission.deniedForever) {
-        _showLocationError('Location permissions permanently denied');
+        _showLocationError(
+          'Location permissions permanently denied. Please enable in device settings.',
+        );
         return;
       }
 
+      print('🌍 Getting position with high accuracy...');
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
+        timeLimit: const Duration(seconds: 15),
       );
+
+      print(
+        '🌍 Raw GPS coordinates: ${position.latitude}, ${position.longitude}',
+      );
+      print('🌍 Accuracy: ${position.accuracy}m');
+      print('🌍 Altitude: ${position.altitude}m');
+      print('🌍 Speed: ${position.speed}m/s');
+
+      // Validate if coordinates make sense for Rwanda/East Africa
+      bool isValidRwandaLocation = _isValidRwandaCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      print('🌍 Is valid Rwanda location: $isValidRwandaLocation');
+
+      if (!isValidRwandaLocation) {
+        print(
+          '⚠️ Detected coordinates appear to be outside Rwanda/East Africa',
+        );
+        print('⚠️ GPS returned: ${position.latitude}, ${position.longitude}');
+        print('⚠️ This looks like US/default coordinates');
+
+        // Show warning and use approximate Kigali location instead
+        _showLocationWarningAndUseKigali(position.latitude, position.longitude);
+        return;
+      }
 
       setState(() {
         _currentLocation = latlong.LatLng(
@@ -101,8 +146,25 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
         );
         _isLoadingLocation = false;
       });
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Location found in Rwanda! Accuracy: ${position.accuracy.round()}m',
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     } catch (e) {
-      _showLocationError('Failed to get location: ${e.toString()}');
+      print('❌ Location error: $e');
+      _showLocationError(
+        'Failed to get location: ${e.toString()}\n\nTry:\n• Enable GPS\n• Grant location permission\n• Check internet connection',
+      );
     }
   }
 
@@ -112,8 +174,14 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: Colors.orange,
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Try Again',
+            textColor: Colors.white,
+            onPressed: _getCurrentLocation,
+          ),
         ),
       );
     }
@@ -121,13 +189,16 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   void _onSearchChanged(String value) {
     _searchDebounce?.cancel();
-    _searchDebounce = Timer(const Duration(milliseconds: 500), () {
+    _searchDebounce = Timer(const Duration(milliseconds: 500), () async {
+      // Use the provider's search functionality for consistency
+      await context.read<ListingProvider>().setSearch(value);
       setState(() => _searchQuery = value.toLowerCase());
     });
   }
 
-  void _clearSearch() {
+  Future<void> _clearSearch() async {
     _searchController.clear();
+    await context.read<ListingProvider>().setSearch('');
     setState(() => _searchQuery = '');
   }
 
@@ -142,9 +213,13 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
 
   void _moveToCurrentLocation() {
     if (_currentLocation != null) {
+      print(
+        '🎯 Moving to current location: ${_currentLocation!.latitude}, ${_currentLocation!.longitude}',
+      );
       _mapController.move(_currentLocation!, 16.0);
       setState(() => _followLocation = true);
     } else {
+      print('🎯 Current location not available, getting location...');
       _getCurrentLocation();
     }
   }
@@ -152,6 +227,241 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
   void _moveToKigali() {
     _mapController.move(_kigaliCenter, 13.0);
     setState(() => _followLocation = false);
+  }
+
+  void _showLocationHelp() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.location_on, color: Colors.blue),
+            SizedBox(width: 8),
+            Text('Location Help'),
+          ],
+        ),
+        content: const SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Why can\'t I see my location on the map?',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 12),
+              Text('• Location services must be enabled on your device'),
+              SizedBox(height: 4),
+              Text('• Grant location permission to this app'),
+              SizedBox(height: 4),
+              Text('• Ensure GPS or network location is available'),
+              SizedBox(height: 4),
+              Text('• Check internet connection'),
+              SizedBox(height: 12),
+              Text(
+                'Emulator Users:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 4),
+              Text('• Set location in emulator settings'),
+              Text('• Or use "Go to Kigali Center" option'),
+              SizedBox(height: 12),
+              Text(
+                'The blue location button (📍) will show your current position when available.',
+                style: TextStyle(fontStyle: FontStyle.italic),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _getCurrentLocation();
+            },
+            child: const Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Validate if coordinates are within Rwanda/East Africa region
+  bool _isValidRwandaCoordinates(double latitude, double longitude) {
+    // Rwanda boundaries (approximate):
+    // Latitude: -2.9 to -1.0 (South to North)
+    // Longitude: 28.8 to 30.9 (West to East)
+    // Adding buffer for East Africa region
+
+    const double minLat = -3.0; // South boundary (with buffer)
+    const double maxLat = -0.5; // North boundary (with buffer)
+    const double minLng = 28.5; // West boundary (with buffer)
+    const double maxLng = 31.5; // East boundary (with buffer)
+
+    return latitude >= minLat &&
+        latitude <= maxLat &&
+        longitude >= minLng &&
+        longitude <= maxLng;
+  }
+
+  // Show warning about incorrect coordinates and use Kigali fallback
+  void _showLocationWarningAndUseKigali(
+    double detectedLat,
+    double detectedLng,
+  ) {
+    // Use approximate location for user's area (24 KG 3 Ave, Kigali)
+    const kigaliUserLocation = latlong.LatLng(
+      -1.9506,
+      30.0618,
+    ); // Near KG 3 Ave area
+
+    setState(() {
+      _currentLocation = kigaliUserLocation;
+      _isLoadingLocation = false;
+    });
+
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Row(
+            children: [
+              Icon(Icons.warning, color: Colors.orange),
+              SizedBox(width: 8),
+              Text('Location Detected Outside Rwanda'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'GPS returned coordinates that appear to be in the US, not Rwanda:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text('Detected: $detectedLat, $detectedLng'),
+              const SizedBox(height: 12),
+              const Text(
+                'This usually happens when:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                '• Using an Android emulator with default US location',
+              ),
+              const Text('• VPN is active and masking location'),
+              const Text('• GPS/location services not properly configured'),
+              const SizedBox(height: 12),
+              const Text(
+                'Using approximate Kigali location instead (KG 3 Ave area).',
+                style: TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: Colors.green,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('OK'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                _showSetManualLocationDialog();
+              },
+              child: const Text('Set Manual Location'),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
+  // Dialog to manually set location to user's specific area
+  void _showSetManualLocationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Set Your Location'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Since GPS detection isn\'t working correctly, you can manually set your location:',
+            ),
+            SizedBox(height: 12),
+            Text(
+              '1. KG 3 Ave Area (your mentioned location)',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text('2. Kigali City Center'),
+            Text('3. Kacyiru District'),
+            Text('4. Nyamirambo District'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _setManualLocation('kg3_ave');
+            },
+            child: const Text('KG 3 Ave Area'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Set manual location based on user selection
+  void _setManualLocation(String locationKey) {
+    latlong.LatLng selectedLocation;
+    String locationName;
+
+    switch (locationKey) {
+      case 'kg3_ave':
+        selectedLocation = const latlong.LatLng(
+          -1.9506,
+          30.0618,
+        ); // Near KG 3 Ave
+        locationName = 'KG 3 Ave Area (24 KG 3 Ave, Kigali)';
+        break;
+      case 'city_center':
+        selectedLocation = const latlong.LatLng(-1.9441, 30.0619);
+        locationName = 'Kigali City Center';
+        break;
+      default:
+        selectedLocation = const latlong.LatLng(-1.9506, 30.0618);
+        locationName = 'KG 3 Ave Area';
+    }
+
+    setState(() {
+      _currentLocation = selectedLocation;
+      _followLocation = true;
+    });
+
+    _mapController.move(selectedLocation, 16.0);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Location manually set to $locationName'),
+          backgroundColor: Colors.blue,
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   IconData _getCategoryIcon(String category) {
@@ -202,23 +512,17 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
     }
   }
 
-  List<ListingModel> _getFilteredListings(List<ListingModel> listings) {
-    var filtered = listings;
+  List<ListingModel> _getFilteredListings(
+    List<ListingModel> listings,
+    ListingProvider provider,
+  ) {
+    // Use the provider's filtered listings instead of doing our own filtering
+    var filtered = provider.filteredListings;
 
-    // Apply search filter
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered
-          .where(
-            (listing) =>
-                listing.name.toLowerCase().contains(_searchQuery) ||
-                listing.category.toLowerCase().contains(_searchQuery) ||
-                listing.address.toLowerCase().contains(_searchQuery),
-          )
-          .toList();
-    }
-
-    // Apply category filter
-    if (_selectedCategory != null) {
+    // Only apply additional category filter if we have a local category selection
+    // that differs from the provider's category
+    if (_selectedCategory != null &&
+        _selectedCategory != provider.selectedCategory) {
       filtered = filtered
           .where((listing) => listing.category == _selectedCategory)
           .toList();
@@ -241,7 +545,10 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 return _buildMapLoadingState();
               }
 
-              final filteredListings = _getFilteredListings(prov.allListings);
+              final filteredListings = _getFilteredListings(
+                prov.allListings,
+                prov,
+              );
               final markers = _buildMarkers(filteredListings);
 
               return FlutterMap(
@@ -383,6 +690,12 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
               case 'kigali':
                 _moveToKigali();
                 break;
+              case 'set_manual_location':
+                _showSetManualLocationDialog();
+                break;
+              case 'location_help':
+                _showLocationHelp();
+                break;
             }
           },
           itemBuilder: (ctx) => [
@@ -403,6 +716,26 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                   Icon(Icons.location_city),
                   SizedBox(width: 12),
                   Text('Center on Kigali'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'set_manual_location',
+              child: Row(
+                children: [
+                  Icon(Icons.place, color: Colors.blue),
+                  SizedBox(width: 12),
+                  Text('Set My Location'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'location_help',
+              child: Row(
+                children: [
+                  Icon(Icons.help_outline),
+                  SizedBox(width: 12),
+                  Text('Location Help'),
                 ],
               ),
             ),
@@ -475,26 +808,54 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
-        child: TextField(
-          controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search locations on map...',
-            hintStyle: TextStyle(color: Colors.grey.shade500),
-            prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
-            suffixIcon: _searchController.text.isNotEmpty
-                ? IconButton(
-                    icon: Icon(Icons.clear, color: Colors.grey.shade600),
-                    onPressed: _clearSearch,
-                  )
-                : null,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            filled: true,
-            fillColor: Colors.white,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.grey.shade800,
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-          onChanged: _onSearchChanged,
+          child: TextField(
+            controller: _searchController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Search locations on map...',
+              hintStyle: TextStyle(color: Colors.grey.shade500),
+              prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      icon: Icon(Icons.clear, color: Colors.grey.shade400),
+                      onPressed: () async {
+                        await _clearSearch();
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: Colors.transparent,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(25),
+                borderSide: const BorderSide(color: Colors.white, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 16,
+              ),
+            ),
+            onChanged: _onSearchChanged,
+          ),
         ),
       ),
     );
@@ -605,19 +966,26 @@ class _MapScreenState extends State<MapScreen> with TickerProviderStateMixin {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(24),
                   onTap: _isLoadingLocation ? null : _moveToCurrentLocation,
-                  child: _isLoadingLocation
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.grey,
+                  child: Tooltip(
+                    message: _currentLocation != null
+                        ? 'Go to my location'
+                        : 'Get my current location',
+                    child: _isLoadingLocation
+                        ? const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.grey,
+                            ),
+                          )
+                        : Icon(
+                            Icons.my_location,
+                            color: _followLocation
+                                ? Colors.white
+                                : Colors.black,
+                            size: 20,
                           ),
-                        )
-                      : Icon(
-                          Icons.my_location,
-                          color: _followLocation ? Colors.white : Colors.black,
-                          size: 20,
-                        ),
+                  ),
                 ),
               ),
             ),

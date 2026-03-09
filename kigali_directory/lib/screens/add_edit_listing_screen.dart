@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -262,6 +264,7 @@ class _AddEditListingScreenState extends State<AddEditListingScreen>
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(
           _isEditing ? 'Edit Listing' : 'Add Listing',
@@ -292,506 +295,634 @@ class _AddEditListingScreenState extends State<AddEditListingScreen>
         opacity: _fadeAnimation,
         child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Header Section ──────────────────────
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [categoryColor.withOpacity(0.1), Colors.white],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: categoryColor.withOpacity(0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: categoryColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: categoryColor.withOpacity(0.3),
-                            ),
-                          ),
-                          child: Icon(
-                            categoryIcon,
-                            color: categoryColor,
-                            size: 24,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _isEditing
-                                    ? 'Update Listing'
-                                    : 'Create New Listing',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.grey[800],
-                                ),
-                              ),
-                              Text(
-                                _selectedCategory,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: categoryColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Basic Information ──────────────────────
-                  Text(
-                    'BASIC INFORMATION',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                MediaQuery.of(context).viewInsets.bottom + 20,
+              ),
+              child: SlideTransition(
+                position: _slideAnimation,
+                child: Column(                          // ← fixed: added `child:` parameter
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Header Section ──────────────────────
+                    Container(
                       padding: const EdgeInsets.all(20),
-                      child: Column(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [categoryColor.withOpacity(0.1), Colors.white],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: categoryColor.withOpacity(0.2)),
+                      ),
+                      child: Row(
                         children: [
-                          // ── Name ─────────────────────────────
-                          TextFormField(
-                            controller: _nameCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Place / Service Name *',
-                              hintText:
-                                  'Enter the name of the place or service',
-                              prefixIcon: Icon(
-                                Icons.business,
-                                color: categoryColor,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: categoryColor,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            validator: (value) =>
-                                _validateRequired(value, 'Name'),
-                            textCapitalization: TextCapitalization.words,
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ── Category Dropdown ─────────────────
-                          DropdownButtonFormField<String>(
-                            value: _selectedCategory,
-                            decoration: InputDecoration(
-                              labelText: 'Category *',
-                              prefixIcon: Icon(
-                                categoryIcon,
-                                color: categoryColor,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: categoryColor,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            items: _categories.map((cat) {
-                              final catColor =
-                                  _categoryColors[cat] ?? Colors.grey;
-                              final catIcon =
-                                  _categoryIcons[cat] ?? Icons.place;
-                              return DropdownMenuItem(
-                                value: cat,
-                                child: Row(
-                                  children: [
-                                    Icon(catIcon, color: catColor, size: 20),
-                                    const SizedBox(width: 12),
-                                    Text(cat),
-                                  ],
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) =>
-                                setState(() => _selectedCategory = val!),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ── Address ───────────────────────────
-                          TextFormField(
-                            controller: _addressCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Address *',
-                              hintText: 'Enter the full address',
-                              prefixIcon: Icon(
-                                Icons.location_on,
-                                color: categoryColor,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: categoryColor,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            validator: (value) =>
-                                _validateRequired(value, 'Address'),
-                            maxLines: 2,
-                            textCapitalization: TextCapitalization.words,
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // ── Contact ───────────────────────────
-                          TextFormField(
-                            controller: _contactCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Contact Number',
-                              hintText: '+250 XXX XXX XXX',
-                              prefixIcon: Icon(
-                                Icons.phone,
-                                color: categoryColor,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(
-                                  color: categoryColor,
-                                  width: 2,
-                                ),
-                              ),
-                            ),
-                            validator: _validatePhoneNumber,
-                            keyboardType: TextInputType.phone,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Description ──────────────────────
-                  Text(
-                    'DESCRIPTION',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: TextFormField(
-                        controller: _descCtrl,
-                        decoration: InputDecoration(
-                          labelText: 'Description',
-                          hintText:
-                              'Provide a detailed description of the place or service...',
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.only(bottom: 60),
-                            child: Icon(
-                              Icons.description,
-                              color: categoryColor,
-                            ),
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: categoryColor,
-                              width: 2,
-                            ),
-                          ),
-                          alignLabelWithHint: true,
-                        ),
-                        maxLines: 4,
-                        textCapitalization: TextCapitalization.sentences,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Location ──────────────────────
-                  Text(
-                    'LOCATION',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[600],
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.my_location, color: categoryColor),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Text(
-                                  'GPS Coordinates',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                              OutlinedButton.icon(
-                                onPressed: _isLoadingLocation
-                                    ? null
-                                    : _getCurrentLocation,
-                                icon: _isLoadingLocation
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                    : const Icon(Icons.my_location, size: 18),
-                                label: Text(
-                                  _isLoadingLocation ? 'Loading...' : 'Current',
-                                ),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: categoryColor,
-                                  side: BorderSide(color: categoryColor),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-
-                          const SizedBox(height: 16),
-
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.amber.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
+                              color: categoryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: Colors.amber.withOpacity(0.3),
+                                color: categoryColor.withOpacity(0.3),
                               ),
                             ),
-                            child: Row(
+                            child: Icon(
+                              categoryIcon,
+                              color: categoryColor,
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
-                                  Icons.lightbulb_outline,
-                                  color: Colors.amber,
-                                  size: 20,
+                                Text(
+                                  _isEditing ? 'Update Listing' : 'Create New Listing',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.grey[800],
+                                  ),
                                 ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Tip: Right-click any location on Google Maps and copy coordinates',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[700],
-                                    ),
+                                Text(
+                                  _selectedCategory,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: categoryColor,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-
-                          const SizedBox(height: 16),
-
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _latCtrl,
-                                  decoration: InputDecoration(
-                                    labelText: 'Latitude *',
-                                    hintText: '-1.9441',
-                                    prefixIcon: Icon(
-                                      Icons.south,
-                                      color: categoryColor,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: categoryColor,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      _validateCoordinate(value, 'Latitude'),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                        signed: true,
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: TextFormField(
-                                  controller: _lngCtrl,
-                                  decoration: InputDecoration(
-                                    labelText: 'Longitude *',
-                                    hintText: '30.0619',
-                                    prefixIcon: Icon(
-                                      Icons.east,
-                                      color: categoryColor,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: categoryColor,
-                                        width: 2,
-                                      ),
-                                    ),
-                                  ),
-                                  validator: (value) =>
-                                      _validateCoordinate(value, 'Longitude'),
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                        signed: true,
-                                      ),
-                                ),
-                              ),
-                            ],
-                          ),
                         ],
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 24),
 
-                  // ── Save Button ───────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isLoading ? null : _save,
-                      icon: _isLoading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Icon(_isEditing ? Icons.save : Icons.add),
-                      label: Text(
-                        _isLoading
-                            ? 'Saving...'
-                            : _isEditing
-                            ? 'Save Changes'
-                            : 'Add Listing',
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: categoryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
+                    // ── Basic Information ──────────────────────
+                    Text(
+                      'BASIC INFORMATION',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                        letterSpacing: 1.2,
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 24),
-                ],
+                    const SizedBox(height: 12),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          children: [
+                            // ── Name ─────────────────────────────
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade800,
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: TextFormField(
+                                controller: _nameCtrl,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Place / Service Name *',
+                                  labelStyle: TextStyle(color: Colors.grey.shade400),
+                                  hintText: 'Enter the name of the place or service',
+                                  hintStyle: TextStyle(color: Colors.grey.shade500),
+                                  prefixIcon: Icon(Icons.business, color: categoryColor),
+                                  filled: true,
+                                  fillColor: Colors.transparent,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide(color: categoryColor, width: 2),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 16,
+                                  ),
+                                ),
+                                validator: (value) => _validateRequired(value, 'Name'),
+                                textCapitalization: TextCapitalization.words,
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // ── Category Dropdown ─────────────────
+                            DropdownButtonFormField<String>(
+                              value: _selectedCategory,
+                              decoration: InputDecoration(
+                                labelText: 'Category *',
+                                prefixIcon: Icon(categoryIcon, color: categoryColor),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(color: categoryColor, width: 2),
+                                ),
+                              ),
+                              items: _categories.map((cat) {
+                                final catColor = _categoryColors[cat] ?? Colors.grey;
+                                final catIcon = _categoryIcons[cat] ?? Icons.place;
+                                return DropdownMenuItem(
+                                  value: cat,
+                                  child: Row(
+                                    children: [
+                                      Icon(catIcon, color: catColor, size: 20),
+                                      const SizedBox(width: 12),
+                                      Text(cat),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: (val) =>
+                                  setState(() => _selectedCategory = val!),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // ── Address ───────────────────────────
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade800,
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: TextFormField(
+                                controller: _addressCtrl,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Address *',
+                                  labelStyle: TextStyle(color: Colors.grey.shade400),
+                                  hintText: 'Enter the full address',
+                                  hintStyle: TextStyle(color: Colors.grey.shade500),
+                                  prefixIcon: Icon(Icons.location_on, color: categoryColor),
+                                  filled: true,
+                                  fillColor: Colors.transparent,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide(color: categoryColor, width: 2),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 16,
+                                  ),
+                                ),
+                                validator: (value) => _validateRequired(value, 'Address'),
+                                maxLines: 2,
+                                textCapitalization: TextCapitalization.words,
+                              ),
+                            ),
+
+                            const SizedBox(height: 20),
+
+                            // ── Contact ───────────────────────────
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade800,
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: TextFormField(
+                                controller: _contactCtrl,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: InputDecoration(
+                                  labelText: 'Contact Number',
+                                  labelStyle: TextStyle(color: Colors.grey.shade400),
+                                  hintText: '+250 XXX XXX XXX',
+                                  hintStyle: TextStyle(color: Colors.grey.shade500),
+                                  prefixIcon: Icon(Icons.phone, color: categoryColor),
+                                  filled: true,
+                                  fillColor: Colors.transparent,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide(color: categoryColor, width: 2),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(25),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 20,
+                                    vertical: 16,
+                                  ),
+                                ),
+                                validator: _validatePhoneNumber,
+                                keyboardType: TextInputType.phone,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ── Description ──────────────────────
+                    Text(
+                      'DESCRIPTION',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade800,
+                            borderRadius: BorderRadius.circular(25),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: TextFormField(
+                            controller: _descCtrl,
+                            style: const TextStyle(color: Colors.white),
+                            decoration: InputDecoration(
+                              labelText: 'Description',
+                              labelStyle: TextStyle(color: Colors.grey.shade400),
+                              hintText:
+                                  'Provide a detailed description of the place or service...',
+                              hintStyle: TextStyle(color: Colors.grey.shade500),
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(bottom: 60),
+                                child: Icon(Icons.description, color: categoryColor),
+                              ),
+                              filled: true,
+                              fillColor: Colors.transparent,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(25),
+                                borderSide: BorderSide.none,
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(25),
+                                borderSide: BorderSide(color: categoryColor, width: 2),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(25),
+                                borderSide: BorderSide.none,
+                              ),
+                              alignLabelWithHint: true,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 16,
+                              ),
+                            ),
+                            maxLines: 4,
+                            textCapitalization: TextCapitalization.sentences,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // ── Location ──────────────────────
+                    Text(
+                      'LOCATION',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey[600],
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.my_location, color: categoryColor),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Text(
+                                    'GPS Coordinates',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                OutlinedButton.icon(
+                                  onPressed: _isLoadingLocation
+                                      ? null
+                                      : _getCurrentLocation,
+                                  icon: _isLoadingLocation
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Icon(Icons.my_location, size: 18),
+                                  label: Text(
+                                    _isLoadingLocation ? 'Loading...' : 'Current',
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: categoryColor,
+                                    side: BorderSide(color: categoryColor),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: Colors.amber.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(
+                                    Icons.lightbulb_outline,
+                                    color: Colors.amber,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Tip: Right-click any location on Google Maps and copy coordinates',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[700],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            Row(
+                              children: [
+                                // ── Latitude ──────────────────────────
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade800,
+                                      borderRadius: BorderRadius.circular(25),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: TextFormField(
+                                      controller: _latCtrl,
+                                      style: const TextStyle(color: Colors.white),
+                                      decoration: InputDecoration(
+                                        labelText: 'Latitude *',
+                                        labelStyle:
+                                            TextStyle(color: Colors.grey.shade400),
+                                        hintText: '-1.9441',
+                                        hintStyle:
+                                            TextStyle(color: Colors.grey.shade500),
+                                        prefixIcon: Icon(Icons.south, color: categoryColor),
+                                        filled: true,
+                                        fillColor: Colors.transparent,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide:
+                                              BorderSide(color: categoryColor, width: 2),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 16,
+                                        ),
+                                      ),
+                                      validator: (value) =>
+                                          _validateCoordinate(value, 'Latitude'),
+                                      keyboardType: const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                        signed: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(width: 16),
+
+                                // ── Longitude ─────────────────────────
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey.shade800,
+                                      borderRadius: BorderRadius.circular(25),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: TextFormField(
+                                      controller: _lngCtrl,
+                                      style: const TextStyle(color: Colors.white),
+                                      decoration: InputDecoration(
+                                        labelText: 'Longitude *',
+                                        labelStyle:
+                                            TextStyle(color: Colors.grey.shade400),
+                                        hintText: '30.0619',
+                                        hintStyle:
+                                            TextStyle(color: Colors.grey.shade500),
+                                        prefixIcon: Icon(Icons.east, color: categoryColor),
+                                        filled: true,
+                                        fillColor: Colors.transparent,
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide:
+                                              BorderSide(color: categoryColor, width: 2),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(25),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        contentPadding: const EdgeInsets.symmetric(
+                                          horizontal: 20,
+                                          vertical: 16,
+                                        ),
+                                      ),
+                                      validator: (value) =>
+                                          _validateCoordinate(value, 'Longitude'),
+                                      keyboardType: const TextInputType.numberWithOptions(
+                                        decimal: true,
+                                        signed: true,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // ── Save Button ───────────────────────
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isLoading ? null : _save,
+                        icon: _isLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : Icon(_isEditing ? Icons.save : Icons.add),
+                        label: Text(
+                          _isLoading
+                              ? 'Saving...'
+                              : _isEditing
+                                  ? 'Save Changes'
+                                  : 'Add Listing',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: categoryColor,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'providers/auth_provider.dart' as app_auth;
 import 'providers/listing_provider.dart';
+import 'providers/theme_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/verify_email_screen.dart';
@@ -39,93 +40,26 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => app_auth.AuthProvider()),
         ChangeNotifierProvider(create: (_) => ListingProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+        ), // Add theme provider
       ],
-      child: MaterialApp(
-        title: 'Kigali Directory',
-        debugShowCheckedModeBanner: false,
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'Kigali Directory',
+            debugShowCheckedModeBanner: false,
 
-        // 🎨 CUSTOM WHITE/BLACK/GRAY THEME FOR PERFORMANCE & BEAUTY
-        theme: ThemeData(
-          // Base colors - white/black/gray scheme
-          primarySwatch: Colors.grey,
-          primaryColor: Colors.black,
-          scaffoldBackgroundColor: Colors.white,
+            // Use dynamic theme from ThemeProvider
+            theme: themeProvider.lightTheme,
+            darkTheme: themeProvider.darkTheme,
+            themeMode: themeProvider.isDarkMode
+                ? ThemeMode.dark
+                : ThemeMode.light,
 
-          // App bar styling
-          appBarTheme: const AppBarTheme(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
-            elevation: 1,
-            centerTitle: true,
-            titleTextStyle: TextStyle(
-              color: Colors.black,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-
-          // Button themes for consistency and performance
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.black,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.black,
-              side: const BorderSide(color: Colors.grey),
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          ),
-
-          // Input field styling
-          inputDecorationTheme: InputDecorationTheme(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.grey),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.black, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.grey.shade50,
-          ),
-
-          // Card theme
-          cardTheme: const CardThemeData(
-            elevation: 2,
-            margin: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          ),
-
-          // Bottom navigation bar
-          bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-            backgroundColor: Colors.white,
-            selectedItemColor: Colors.black,
-            unselectedItemColor: Colors.grey,
-            elevation: 8,
-            type: BottomNavigationBarType.fixed,
-          ),
-
-          // Disable animations for better performance on slow devices
-          pageTransitionsTheme: const PageTransitionsTheme(
-            builders: {
-              TargetPlatform.android: CupertinoPageTransitionsBuilder(),
-              TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
-            },
-          ),
-        ),
-
-        home: const AuthGate(),
+            home: const AuthGate(),
+          );
+        },
       ),
     );
   }

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_map/flutter_map.dart';
@@ -91,22 +93,75 @@ class _DetailScreenState extends State<DetailScreen>
   }
 
   Future<void> _openDirections() async {
-    final url = Uri.parse(
-      'https://www.google.com/maps/dir/?api=1'
-      '&destination=${widget.listing.latitude},${widget.listing.longitude}',
-    );
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
+    try {
+      // Debug: Print the actual coordinates being used
+      print('🗺️ Opening directions for: ${widget.listing.name}');
+      // ignore: avoid_print
+      print(
+        '🗺️ Coordinates: ${widget.listing.latitude}, ${widget.listing.longitude}',
+      );
+
+      // Check if coordinates are in Kigali range
+      final isKigaliLatitude =
+          widget.listing.latitude >= -2.5 && widget.listing.latitude <= -1.0;
+      final isKigaliLongitude =
+          widget.listing.longitude >= 29.0 && widget.listing.longitude <= 31.0;
+
+      if (!isKigaliLatitude || !isKigaliLongitude) {
+        _showSnackBar(
+          '⚠️ Warning: This location appears to be outside Kigali area',
+          Colors.orange,
+        );
+        print(
+          '⚠️ Coordinates seem wrong for Kigali: ${widget.listing.latitude}, ${widget.listing.longitude}',
+        );
+      }
+
+      final url = Uri.parse(
+        'https://www.google.com/maps/dir/?api=1'
+        '&destination=${widget.listing.latitude},${widget.listing.longitude}',
+      );
+
+      print('🗺️ Google Maps URL: $url');
+
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        _showSnackBar('Opening Google Maps...', Colors.green);
+      } else {
+        // Fallback to geo: scheme
+        final geoUrl = Uri.parse(
+          'geo:${widget.listing.latitude},${widget.listing.longitude}',
+        );
+        if (await canLaunchUrl(geoUrl)) {
+          await launchUrl(geoUrl, mode: LaunchMode.externalApplication);
+          _showSnackBar('Opening Maps...', Colors.green);
+        } else {
+          _showSnackBar(
+            'No maps app found. Please install Google Maps.',
+            Colors.orange,
+          );
+        }
+      }
+    } catch (e) {
+      print('Error opening directions: $e');
       _showSnackBar('Could not open maps', Colors.red);
     }
   }
 
   Future<void> _makePhoneCall() async {
-    final url = Uri.parse('tel:${widget.listing.contactNumber}');
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
+    try {
+      final url = Uri.parse('tel:${widget.listing.contactNumber}');
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+        _showSnackBar('Opening phone app...', Colors.green);
+      } else {
+        _showSnackBar(
+          'Phone calling not supported on this device',
+          Colors.orange,
+        );
+      }
+    } catch (e) {
+      print('Error making phone call: $e');
       _showSnackBar('Could not make phone call', Colors.red);
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:provider/provider.dart';
 import '../providers/listing_provider.dart';
 import 'directory_screen.dart';
@@ -70,8 +71,11 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
 
     // Initialize listing provider
     Future.microtask(() {
-      context.read<ListingProvider>().initialize();
-      _fabAnimationController.forward();
+      if (mounted) {
+        final listingProvider = context.read<ListingProvider>();
+        listingProvider.initialize();
+        _fabAnimationController.forward();
+      }
     });
   }
 
@@ -96,7 +100,8 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.transparent,
+      extendBody: true,
       body: PageView(
         controller: _pageController,
         onPageChanged: (index) {
@@ -110,143 +115,166 @@ class _MainScreenState extends State<MainScreen> with TickerProviderStateMixin {
           ? ScaleTransition(
               scale: _fabAnimation,
               child: FloatingActionButton(
-                onPressed: () {
-                  Navigator.of(context).push(
+                onPressed: () async {
+                  final result = await Navigator.of(context).push<bool>(
                     MaterialPageRoute(
                       builder: (_) => const AddEditListingScreen(),
                     ),
                   );
+
+                  // If listing was created successfully, the stream will automatically update
+                  // But we can provide user feedback here
+                  if (result == true && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Listing added successfully!'),
+                        backgroundColor: Colors.green,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
                 },
-                backgroundColor: Colors.black,
+                backgroundColor: const Color(0xFFE53E3E),
                 foregroundColor: Colors.white,
-                elevation: 4,
+                elevation: 8,
                 child: const Icon(Icons.add, size: 28),
               ),
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
 
-      // ── BOTTOM NAVIGATION BAR ─────────────────────────
+      // ── GLASSMORPHIC FLOATING BOTTOM NAVIGATION ─────────────────
       bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.shade200,
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: _navItems.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                final isSelected = index == _currentIndex;
+        margin: const EdgeInsets.all(16),
+        height: 70,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(35),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(35),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: _navItems.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+                      final isSelected = index == _currentIndex;
 
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () => _onNavTap(index),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 12,
-                        horizontal: 8,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // ── ICON WITH BADGE ────────────────────
-                          Stack(
-                            clipBehavior: Clip.none,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: Icon(
-                                  isSelected ? item.activeIcon : item.icon,
-                                  key: ValueKey(isSelected),
-                                  size: 24,
-                                  color: isSelected
-                                      ? Colors.black
-                                      : Colors.grey.shade500,
-                                ),
-                              ),
-
-                              // Badge for My Listings (show count)
-                              if (index == 1)
-                                Consumer<ListingProvider>(
-                                  builder: (ctx, prov, _) {
-                                    final count = prov.myListings.length;
-                                    if (count == 0) return const SizedBox();
-
-                                    return Positioned(
-                                      right: -6,
-                                      top: -6,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red,
-                                          borderRadius: BorderRadius.circular(
-                                            10,
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => _onNavTap(index),
+                          behavior: HitTestBehavior.opaque,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // ── ICON WITH SELECTION BACKGROUND ────────────
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? const Color(0xFFE53E3E)
+                                        : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Center(
+                                        child: AnimatedSwitcher(
+                                          duration: const Duration(milliseconds: 200),
+                                          child: Icon(
+                                            isSelected
+                                                ? item.activeIcon
+                                                : item.icon,
+                                            key: ValueKey(isSelected),
+                                            size: 22,
+                                            color: isSelected
+                                                ? Colors.white
+                                                : Colors.white.withOpacity(0.7),
                                           ),
-                                        ),
-                                        constraints: const BoxConstraints(
-                                          minWidth: 18,
-                                          minHeight: 18,
-                                        ),
-                                        child: Text(
-                                          count > 99 ? '99+' : count.toString(),
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                          textAlign: TextAlign.center,
                                         ),
                                       ),
-                                    );
-                                  },
+
+                                      // Badge for My Listings (show count)
+                                      if (index == 1)
+                                        Consumer<ListingProvider>(
+                                          builder: (ctx, prov, _) {
+                                            final count = prov.myListings.length;
+                                            if (count == 0) return const SizedBox();
+
+                                            return Positioned(
+                                              right: -8,
+                                              top: -4,
+                                              child: Container(
+                                                padding: const EdgeInsets.all(2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.red,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                constraints: const BoxConstraints(
+                                                  minWidth: 16,
+                                                  minHeight: 16,
+                                                ),
+                                                child: Text(
+                                                  count > 99
+                                                      ? '99+'
+                                                      : count.toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 8,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                    ],
+                                  ),
                                 ),
-                            ],
-                          ),
 
-                          const SizedBox(height: 4),
-
-                          // ── LABEL ──────────────────────────────
-                          Text(
-                            item.label,
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                              color: isSelected
-                                  ? Colors.black
-                                  : Colors.grey.shade600,
+                                // ── LABEL (ONLY FOR SELECTED ITEM) ─────────────
+                                if (isSelected) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    item.label,
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
-
-                          // ── SELECTION INDICATOR ───────────────
-                          const SizedBox(height: 2),
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: isSelected ? 20 : 0,
-                            height: 2,
-                            decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(1),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    }).toList(),
                   ),
-                );
-              }).toList(),
+                ),
+              ),
             ),
           ),
         ),

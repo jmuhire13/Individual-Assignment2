@@ -1,3 +1,5 @@
+// ignore_for_file: use_build_context_synchronously, deprecated_member_use, unused_field
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../providers/auth_provider.dart' as app_auth;
 import '../providers/listing_provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -84,7 +87,8 @@ class _SettingsScreenState extends State<SettingsScreen>
       _marketingEmails = prefs.getBool('marketing_emails') ?? false;
       _preferredLanguage = prefs.getString('preferred_language') ?? 'English';
       _distanceUnit = prefs.getString('distance_unit') ?? 'Kilometers';
-      _darkMode = prefs.getBool('dark_mode') ?? false;
+      // Dark mode is now handled by ThemeProvider, so we read it from there
+      _darkMode = context.read<ThemeProvider>().isDarkMode;
     });
   }
 
@@ -598,11 +602,26 @@ class _SettingsScreenState extends State<SettingsScreen>
                       secondary: const Icon(Icons.dark_mode_outlined),
                       title: const Text('Dark Mode'),
                       subtitle: const Text('Use dark theme'),
-                      value: _darkMode,
-                      onChanged: (value) {
+                      value: context.watch<ThemeProvider>().isDarkMode,
+                      onChanged: (value) async {
+                        // Use theme provider to properly toggle theme
+                        await context.read<ThemeProvider>().setTheme(value);
                         setState(() => _darkMode = value);
-                        _savePreference('dark_mode', value);
-                        // Would need to implement theme switching
+
+                        // Show feedback to user
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              value
+                                  ? 'Dark mode enabled'
+                                  : 'Light mode enabled',
+                            ),
+                            backgroundColor: value
+                                ? Colors.grey.shade800
+                                : Colors.green,
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
                       },
                     ),
                   ],
@@ -714,6 +733,106 @@ class _SettingsScreenState extends State<SettingsScreen>
                             ),
                           ],
                         );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // ── Developer Tools ──────────────────────
+              _buildSectionTitle('Developer Tools'),
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(
+                        Icons.location_on_outlined,
+                        color: Colors.blue,
+                      ),
+                      title: const Text('Fix Coordinates'),
+                      subtitle: const Text(
+                        'Fix listings with incorrect coordinates',
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () async {
+                        final shouldFix = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('Fix Coordinates'),
+                            content: const Text(
+                              'This will update listings with incorrect coordinates (like US coordinates) to proper Kigali, Rwanda coordinates.\n\nDo you want to continue?',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('Cancel'),
+                              ),
+                              ElevatedButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue,
+                                  foregroundColor: Colors.white,
+                                ),
+                                child: const Text('Fix Coordinates'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (shouldFix == true) {
+                          try {
+                            // Show loading indicator
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text('Fixing coordinates...'),
+                                  ],
+                                ),
+                                duration: Duration(seconds: 10),
+                              ),
+                            );
+
+                            final listingProvider = context
+                                .read<ListingProvider>();
+                            final result = await listingProvider
+                                .fixIncorrectCoordinates();
+
+                            // Hide loading and show result
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(result),
+                                backgroundColor: Colors.green,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error fixing coordinates: $e'),
+                                backgroundColor: Colors.red,
+                                duration: const Duration(seconds: 4),
+                              ),
+                            );
+                          }
+                        }
                       },
                     ),
                   ],

@@ -60,17 +60,29 @@ class ListingProvider extends ChangeNotifier {
 
   // Start listening to all listings for shared directory
   void startListeningToAllListings() {
+    // Avoid duplicate subscriptions
+    _allListingsSubscription?.cancel();
+
+    print('Starting to listen to all listings...');
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     _allListingsSubscription = _service.getListings().listen(
       (listings) {
+        print('Received ${listings.length} listings from Firebase');
         _listings = listings;
         _isLoading = false;
+
+        // If we have search results, re-apply search to new data
+        if (_searchQuery.isNotEmpty && _searchResults.isEmpty) {
+          _performSearch(_searchQuery);
+        }
+
         notifyListeners();
       },
       onError: (error) {
+        print('Error loading listings: $error');
         _isLoading = false;
         _errorMessage = 'Failed to load listings: ${error.toString()}';
         notifyListeners();
@@ -80,36 +92,82 @@ class ListingProvider extends ChangeNotifier {
 
   // Start listening to current user's listings for "My Listings" screen
   void startListeningToMyListings() {
+    // Avoid duplicate subscriptions
+    _myListingsSubscription?.cancel();
+
     _myListingsSubscription = _service.getMyListings().listen(
       (myListings) {
         _myListings = myListings;
         notifyListeners();
       },
       onError: (error) {
-        _errorMessage = 'Failed to load your listings: ${error.toString()}';
-        notifyListeners();
+        print('Error loading my listings: $error');
+        // Don't override main error message unless it's empty
+        if (_errorMessage == null) {
+          _errorMessage = 'Failed to load your listings: ${error.toString()}';
+          notifyListeners();
+        }
       },
     );
   }
 
   // Initialize all streams (call this when user logs in)
   void initialize() {
+    print('ListingProvider.initialize() called');
+
+    // Cleanup any existing streams first
+    _cleanupSubscriptions();
+
+    // Clear error state
+    _errorMessage = null;
+
+    // Start fresh
     startListeningToAllListings();
     startListeningToMyListings();
   }
 
+  // Test Firebase connection
+  Future<String> testFirebaseConnection() async {
+    try {
+      print('Testing Firebase connection...');
+      final result = await _service.testConnection();
+      print('Firebase connection test: $result');
+      return result;
+    } catch (e) {
+      print('Firebase connection failed: $e');
+      _errorMessage = 'Firebase connection failed: $e';
+      notifyListeners();
+      throw e;
+    }
+  }
+
+  // Add sample data for testing (if collection is empty)
+  Future<String> addSampleData() async {
+    try {
+      final result = await _service.addSampleData();
+      print('Sample data added: $result');
+      return result;
+    } catch (e) {
+      print('Failed to add sample data: $e');
+      throw e;
+    }
+  }
+
   // Stop all streams (call this when user logs out)
   void cleanup() {
-    _allListingsSubscription?.cancel();
-    _myListingsSubscription?.cancel();
-    _categorySubscription?.cancel();
+    print('Cleaning up ListingProvider...');
 
+    _cleanupSubscriptions();
+
+    // Reset all state
     _listings.clear();
     _myListings.clear();
     _searchResults.clear();
     _searchQuery = '';
     _selectedCategory = null;
     _errorMessage = null;
+    _isLoading = false;
+    _isCrudLoading = false;
 
     notifyListeners();
   }
@@ -118,21 +176,39 @@ class ListingProvider extends ChangeNotifier {
 
   // CREATE: Add new listing (Assignment requirement)
   Future<bool> addListing(ListingModel listing) async {
+    print('Adding listing: ${listing.name}');
     _isCrudLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      await _service.addListing(listing);
+      final docId = await _service.addListing(listing);
+      print('Listing created with ID: $docId');
+
       _isCrudLoading = false;
       notifyListeners();
 
       // Show success feedback
       _showSuccessMessage('Listing created successfully!');
+
+      // Note: Don't manually refresh - the Firestore stream will automatically
+      // pick up the new listing and update the UI
+
       return true;
     } catch (e) {
+      print('Error creating listing: $e');
       _isCrudLoading = false;
-      _errorMessage = e.toString();
+
+      // Provide user-friendly error messages
+      if (e.toString().contains('permission-denied')) {
+        _errorMessage =
+            'Permission denied. Please check your Firebase security rules.';
+      } else if (e.toString().contains('network-request-failed')) {
+        _errorMessage = 'Network error. Please check your internet connection.';
+      } else {
+        _errorMessage = 'Failed to create listing: ${e.toString()}';
+      }
+
       notifyListeners();
       return false;
     }
@@ -205,6 +281,17 @@ class ListingProvider extends ChangeNotifier {
 
   // ── SEARCH & FILTER (Assignment: Search by name + filter by category) ─
 
+  // Helper method to perform search without changing loading state
+  Future<void> _performSearch(String searchTerm) async {
+    try {
+      final results = await _service.searchListings(searchTerm);
+      _searchResults = results;
+    } catch (e) {
+      print('Background search failed: $e');
+      _searchResults.clear();
+    }
+  }
+
   // Search listings by name (Assignment requirement)
   Future<void> searchListings(String searchTerm) async {
     _searchQuery = searchTerm.trim();
@@ -233,39 +320,32 @@ class ListingProvider extends ChangeNotifier {
   }
 
   // Set search query (for debounced input)
-  void setSearch(String query) {
+  Future<void> setSearch(String query) async {
     _searchQuery = query.trim();
 
     // If search is cleared, clear results
     if (_searchQuery.isEmpty) {
       _searchResults.clear();
+      notifyListeners();
+      return;
     }
 
-    notifyListeners();
+    // Trigger actual search
+    await searchListings(_searchQuery);
   }
 
   // Filter by category (Assignment requirement)
   void setCategory(String? category) {
+    // Cancel any existing category subscription first
+    _categorySubscription?.cancel();
+
     _selectedCategory = category;
 
-    // If filtering by category, start listening to category-specific stream
+    // Only create specific category stream if we're filtering
+    // Most of the time, we'll just use the main listings with client-side filtering
     if (category != null) {
-      _categorySubscription?.cancel();
-      _categorySubscription = _service
-          .getListingsByCategory(category)
-          .listen(
-            (categoryListings) {
-              // Update the main listings with filtered results for better UX
-              notifyListeners();
-            },
-            onError: (error) {
-              _errorMessage =
-                  'Failed to filter by category: ${error.toString()}';
-              notifyListeners();
-            },
-          );
-    } else {
-      _categorySubscription?.cancel();
+      // Optional: Create category-specific stream for better performance with large datasets
+      // For now, we'll rely on client-side filtering which is simpler and more reliable
     }
 
     notifyListeners();
@@ -335,19 +415,34 @@ class ListingProvider extends ChangeNotifier {
 
   // Refresh all data (for pull-to-refresh functionality)
   Future<void> refresh() async {
-    _isLoading = true;
+    print('Refreshing all data...');
+
+    // Don't show loading spinner for refresh, just refresh in background
     _errorMessage = null;
-    notifyListeners();
 
     try {
-      // Cancel existing subscriptions and restart them
-      _cleanupSubscriptions();
-      initialize();
+      // Force refresh by restarting streams
+      await _restartStreams();
+
+      print('Data refreshed successfully');
     } catch (e) {
-      _isLoading = false;
+      print('Refresh failed: $e');
       _errorMessage = 'Failed to refresh data: ${e.toString()}';
       notifyListeners();
     }
+  }
+
+  // Helper method to restart all streams
+  Future<void> _restartStreams() async {
+    // Cancel existing subscriptions
+    _cleanupSubscriptions();
+
+    // Small delay to ensure cleanup is complete
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // Restart streams
+    startListeningToAllListings();
+    startListeningToMyListings();
   }
 
   // Public method for refresh (used by UI)
@@ -355,17 +450,35 @@ class ListingProvider extends ChangeNotifier {
     return refresh();
   }
 
-  // Clean up all subscriptions
-  void _cleanupSubscriptions() {
-    _allListingsSubscription?.cancel();
-    _myListingsSubscription?.cancel();
-    _categorySubscription?.cancel();
+  // Fix listings with incorrect coordinates (Developer tool)
+  Future<String> fixIncorrectCoordinates() async {
+    try {
+      final result = await _service.fixIncorrectCoordinates();
+      print('Coordinates fixed: $result');
+      return result;
+    } catch (e) {
+      print('Failed to fix coordinates: $e');
+      throw e;
+    }
   }
 
+  // Clean up all subscriptions
   // Always cancel subscriptions when done to avoid memory leaks
   @override
   void dispose() {
     _cleanupSubscriptions();
     super.dispose();
+  }
+
+  // Clean up all subscriptions (improved version)
+  void _cleanupSubscriptions() {
+    _allListingsSubscription?.cancel();
+    _allListingsSubscription = null;
+
+    _myListingsSubscription?.cancel();
+    _myListingsSubscription = null;
+
+    _categorySubscription?.cancel();
+    _categorySubscription = null;
   }
 }

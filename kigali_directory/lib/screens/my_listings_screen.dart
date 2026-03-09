@@ -338,32 +338,48 @@ class _MyListingsScreenState extends State<MyListingsScreen> {
   Widget _buildSearchSection() {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade800,
+        borderRadius: BorderRadius.circular(25),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: TextField(
         controller: _searchController,
+        style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
           hintText: 'Search your listings...',
           hintStyle: TextStyle(color: Colors.grey.shade500),
-          prefixIcon: Icon(Icons.search, color: Colors.grey.shade600),
+          prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
           suffixIcon: _searchController.text.isNotEmpty
               ? IconButton(
-                  icon: Icon(Icons.clear, color: Colors.grey.shade600),
+                  icon: Icon(Icons.clear, color: Colors.grey.shade400),
                   onPressed: _clearSearch,
                 )
               : null,
+          filled: true,
+          fillColor: Colors.transparent,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(25),
+            borderSide: BorderSide.none,
           ),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(25),
+            borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.black, width: 2),
+            borderRadius: BorderRadius.circular(25),
+            borderSide: const BorderSide(color: Colors.white, width: 2),
           ),
-          filled: true,
-          fillColor: Colors.grey.shade50,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
         onChanged: _onSearchChanged,
       ),

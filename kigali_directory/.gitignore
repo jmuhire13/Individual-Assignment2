@@ -48,6 +48,10 @@ app.*.map.json
 lib/firebase_options.dart
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+
+# Documentation files - DO NOT COMMIT
+BUG_FIXES_SUMMARY.md
+DESIGN_SUMMARY.md
 web/firebase-config.js
 
 # Environment files

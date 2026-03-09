@@ -33,8 +33,7 @@ class AuthProvider extends ChangeNotifier {
       return true;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = e
-          .toString(); // Use improved error messages from AuthService
+      _errorMessage = e.toString(); // Use improved error messages from AuthService
       notifyListeners();
       return false;
     }
@@ -55,12 +54,36 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return true;
-    } catch (e) {
+    } on FirebaseAuthException catch (e) {
       _isLoading = false;
-      _errorMessage = e
-          .toString(); // Use improved error messages from AuthService
+      _errorMessage = _mapFirebaseError(e.code);  // ← map code to friendly message
       notifyListeners();
       return false;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Something went wrong. Please try again.';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // ── MAP FIREBASE ERROR CODES TO FRIENDLY MESSAGES ─────────────────
+  String _mapFirebaseError(String code) {
+    switch (code) {
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return 'Invalid email or password. Please check your credentials.';
+      case 'invalid-email':
+        return 'The email address is not valid.';
+      case 'user-disabled':
+        return 'This account has been disabled. Please contact support.';
+      case 'too-many-requests':
+        return 'Too many failed attempts. Please try again later.';
+      case 'network-request-failed':
+        return 'No internet connection. Please check your network.';
+      default:
+        return 'Invalid email or password. Please check your credentials.';
     }
   }
 
